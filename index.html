@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Image Compressor</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0d1117;
+    --bg-2: #161b22;
+    --bg-3: #21262d;
+    --border: #30363d;
+    --border-muted: #21262d;
+    --text: #e6edf3;
+    --text-muted: #7d8590;
+    --text-subtle: #484f58;
+    --accent: #238636;
+    --accent-hover: #2ea043;
+    --accent-emphasis: #3fb950;
+    --blue: #1f6feb;
+    --blue-muted: #388bfd;
+    --danger: #da3633;
+    --warning-bg: #161b22;
+    --warning-text: #d29922;
+    --success-bg: #0d1117;
+    --success-text: #3fb950;
+    --radius: 6px;
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+    --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  }
+
+  body {
+    font-family: var(--font);
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+
+  .gh-header {
+    background: var(--bg-2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    height: 62px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+  }
+
+  .gh-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text);
+    font-weight: 600;
+    font-size: 14px;
+    text-decoration: none;
+  }
+
+  .gh-logo svg { fill: var(--text); }
+
+  .gh-nav-divider { color: var(--text-subtle); font-size: 18px; font-weight: 300; }
+
+  .gh-repo-name { font-size: 14px; color: var(--blue-muted); font-weight: 600; }
+
+  .gh-header-right { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+
+  .badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 3px 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: default;
+  }
+  .badge-pill .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent-emphasis); }
+
+  
+  .container {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 16px 64px;
+  }
+
+  
+  .page-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .privacy-note {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--text-muted);
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 4px 10px;
+  }
+  .page-title h1 {
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--text);
+  }
+  .page-title h1 b { font-weight: 600; }
+  .counter-badge {
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 0 8px;
+    font-size: 12px;
+    color: var(--text-muted);
+    font-weight: 600;
+  }
+
+  
+  .tabs {
+    display: flex;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+    gap: 0;
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    font-size: 14px;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    margin-bottom: -1px;
+    user-select: none;
+  }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: #f78166;
+    font-weight: 600;
+  }
+  .tab svg { width: 16px; height: 16px; fill: currentColor; opacity: 0.7; }
+
+
+  .upload-box {
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    padding: 48px 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    background: var(--bg-2);
+    position: relative;
+  }
+  .upload-box:hover, .upload-box.drag-over {
+    border-color: var(--blue-muted);
+    background: rgba(31, 111, 235, 0.05);
+  }
+  .upload-box input { display: none; }
+  .upload-box-icon {
+    width: 40px; height: 40px;
+    margin: 0 auto 12px;
+    color: var(--text-muted);
+  }
+  .upload-box-icon svg { width: 40px; height: 40px; stroke: currentColor; fill: none; stroke-width: 1.2; stroke-linecap: round; stroke-linejoin: round; }
+  .upload-box p { color: var(--text); font-size: 14px; margin-bottom: 4px; }
+  .upload-box p span { color: var(--blue-muted); text-decoration: underline; cursor: pointer; }
+  .upload-box small { color: var(--text-muted); font-size: 12px; }
+
+
+  .step2 { display: none; }
+  .step2.show { display: block; }
+
+
+  .file-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    margin-bottom: 16px;
+  }
+  .file-card img {
+    width: 48px; height: 48px;
+    object-fit: cover;
+    border-radius: 4px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    background: var(--bg-3);
+  }
+  .file-card-meta { flex: 1; min-width: 0; }
+  .file-card-name {
+    font-size: 13px;
+    font-family: var(--font-mono);
+    color: var(--blue-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-bottom: 2px;
+  }
+  .file-card-info { font-size: 12px; color: var(--text-muted); }
+  .file-card-reset {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text-muted);
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    font-family: var(--font);
+    transition: color 0.1s, border-color 0.1s;
+  }
+  .file-card-reset:hover { color: var(--danger); border-color: var(--danger); }
+
+  
+  .settings-panel {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .settings-row {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    gap: 12px;
+    border-bottom: 1px solid var(--border-muted);
+  }
+  .settings-row:last-child { border-bottom: none; }
+  .settings-label {
+    font-size: 12px;
+    color: var(--text-muted);
+    width: 110px;
+    flex-shrink: 0;
+    font-family: var(--font-mono);
+  }
+  .settings-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    font-family: var(--font-mono);
+    font-size: 13px;
+    padding: 5px 10px;
+    width: 140px;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .settings-input:focus { border-color: var(--blue-muted); box-shadow: 0 0 0 3px rgba(31,111,235,0.15); }
+  .settings-unit { font-size: 12px; color: var(--text-subtle); font-family: var(--font-mono); }
+  .settings-hint { font-size: 11px; color: var(--text-subtle); margin-left: auto; }
+
+  
+  .action-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 14px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    font-family: var(--font);
+    font-weight: 500;
+    cursor: pointer;
+    border: 1px solid var(--border);
+    background: var(--bg-3);
+    color: var(--text);
+    transition: background 0.1s, border-color 0.1s;
+    line-height: 20px;
+  }
+  .btn:hover { background: #30363d; }
+  .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+  .btn svg { width: 16px; height: 16px; fill: currentColor; }
+
+  .btn-primary {
+    background: var(--accent);
+    border-color: rgba(240,246,252,0.1);
+    color: #fff;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+
+  .btn-sm { padding: 3px 10px; font-size: 12px; }
+
+
+  .progress-wrap { margin-bottom: 12px; display: none; }
+  .progress-wrap.show { display: block; }
+  .progress-track {
+    height: 6px;
+    background: var(--bg-3);
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--accent-emphasis);
+    width: 0%;
+    transition: width 0.2s;
+    border-radius: 999px;
+  }
+  .progress-label { font-size: 11px; color: var(--text-muted); font-family: var(--font-mono); margin-bottom: 6px; }
+
+  
+  .result-box { display: none; border-radius: var(--radius); overflow: hidden; margin-bottom: 12px; }
+  .result-box.show { display: block; }
+  .result-box-inner {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .result-box-inner.success { border-left: 3px solid var(--accent-emphasis); }
+  .result-box-inner.warn { border-left: 3px solid var(--warning-text); }
+  .result-header { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-bottom: 8px; font-weight: 600; }
+  .result-header svg { width: 16px; height: 16px; fill: currentColor; }
+  .result-header.success { color: var(--accent-emphasis); }
+  .result-header.warn { color: var(--warning-text); }
+  .result-body { color: var(--text-muted); font-size: 12px; }
+  .result-body code { font-family: var(--font-mono); background: var(--bg-3); padding: 1px 5px; border-radius: 3px; color: var(--text); }
+  .result-download {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin-top: 10px;
+    background: var(--bg-3);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 5px 12px;
+    color: var(--text);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 500;
+    transition: background 0.1s;
+  }
+  .result-download:hover { background: #30363d; }
+  .result-download svg { width: 14px; height: 14px; fill: currentColor; }
+
+
+  .warn-note { font-size: 11px; color: var(--warning-text); margin-top: 2px; }
+
+  
+  .overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 50;
+    align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .overlay.show { display: flex; }
+
+  .crop-dialog {
+    background: var(--bg-2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 100%; max-width: 720px;
+    max-height: 92vh;
+    display: flex; flex-direction: column;
+    overflow: hidden;
+  }
+  .crop-dialog-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .crop-dialog-header h2 { font-size: 14px; font-weight: 600; }
+  .crop-dialog-header small { font-size: 12px; color: var(--text-muted); }
+
+  .crop-area {
+    position: relative;
+    overflow: hidden;
+    background: var(--bg);
+    flex: 1; min-height: 260px; max-height: 52vh;
+    display: flex; align-items: center; justify-content: center;
+    user-select: none;
+  }
+  .crop-area img { display: block; max-width: 100%; max-height: 100%; pointer-events: none; }
+  .crop-box {
+    position: absolute;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 9999px rgba(0,0,0,0.65), inset 0 0 0 1px rgba(0,0,0,0.4);
+    cursor: move;
+  }
+  .crop-box::before, .crop-box::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+  .crop-box::before {
+    border-left: 1px solid rgba(255,255,255,0.25);
+    border-right: 1px solid rgba(255,255,255,0.25);
+    left: 33.33%; right: 33.33%; top: 0; bottom: 0;
+  }
+  .crop-box::after {
+    border-top: 1px solid rgba(255,255,255,0.25);
+    border-bottom: 1px solid rgba(255,255,255,0.25);
+    top: 33.33%; bottom: 33.33%; left: 0; right: 0;
+  }
+  .handle {
+    position: absolute; width: 14px; height: 14px;
+    background: #fff; border-radius: 3px;
+    border: 2px solid rgba(0,0,0,0.35);
+    box-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  }
+  .handle.nw{top:-5px;left:-5px;cursor:nw-resize}
+  .handle.ne{top:-5px;right:-5px;cursor:ne-resize}
+  .handle.sw{bottom:-5px;left:-5px;cursor:sw-resize}
+  .handle.se{bottom:-5px;right:-5px;cursor:se-resize}
+
+  .crop-dialog-footer {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 12px 16px;
+    border-top: 1px solid var(--border);
+    gap: 8px;
+  }
+  .crop-hint { font-size: 11px; color: var(--text-subtle); font-family: var(--font-mono); }
+</style>
+</head>
+<body>
+
+<header class="gh-header">
+  <a class="gh-logo" href="https://github.com/rhythmcache" target="_blank" rel="noopener">
+    <svg height="24" width="24" viewBox="0 0 16 16"><path d="M8 0c4.42 0 8 3.58 8 8a8.013 8.013 0 0 1-5.45 7.59c-.4.08-.55-.17-.55-.38 0-.27.01-1.13.01-2.2 0-.75-.25-1.23-.54-1.48 1.78-.2 3.65-.88 3.65-3.95 0-.88-.31-1.59-.82-2.15.08-.2.36-1.02-.08-2.12 0 0-.67-.22-2.2.82-.64-.18-1.32-.27-2-.27-.68 0-1.36.09-2 .27-1.53-1.03-2.2-.82-2.2-.82-.44 1.1-.16 1.92-.08 2.12-.51.56-.82 1.28-.82 2.15 0 3.06 1.86 3.75 3.64 3.95-.23.2-.44.55-.51 1.07-.46.21-1.61.55-2.33-.66-.15-.24-.6-.83-1.23-.82-.67.01-.27.38.01.53.34.19.73.9.82 1.13.16.45.68 1.31 2.69.94 0 .67.01 1.3.01 1.49 0 .21-.15.45-.55.38A7.995 7.995 0 0 1 0 8c0-4.42 3.58-8 8-8Z"/></svg>
+    <span>rhythmcache</span>
+  </a>
+  <span class="gh-nav-divider">/</span>
+  <span class="gh-repo-name">imgpress</span>
+  <div class="gh-header-right">
+    <div class="badge-pill"><span class="dot"></span> Local · No uploads</div>
+  </div>
+</header>
+
+<div class="container">
+  <div class="page-title">
+    <h1><b>Compress</b> an image</h1>
+    <span class="privacy-note">
+      <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M8 0a8 8 0 1 1 0 16A8 8 0 0 1 8 0ZM1.5 8a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm6-2.75a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0Zm.75 1.5a.75.75 0 0 1 .75.75v3a.75.75 0 0 1-1.5 0v-3a.75.75 0 0 1 .75-.75Z"/></svg>
+      Your images never leave this device. Everything runs in the browser.
+    </span>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active">
+      <svg viewBox="0 0 16 16"><path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734Z"/></svg>
+      Compress
+    </div>
+    <div class="tab" style="cursor:default;opacity:.45;">
+      <svg viewBox="0 0 16 16"><path d="M8 16a.75.75 0 0 1-.75-.75v-7.5a.75.75 0 0 1 1.5 0v7.5A.75.75 0 0 1 8 16ZM2.5 7.25a.75.75 0 0 1 0-1.5h11a.75.75 0 0 1 0 1.5Z"/><path d="M7.25 2.5a.75.75 0 0 1 1.5 0v4.25a.75.75 0 0 1-1.5 0Z"/></svg>
+      Batch <span style="font-size:10px;color:var(--text-subtle);margin-left:4px">soon</span>
+    </div>
+  </div>
+
+  <div class="upload-box" id="uploadArea">
+    <input type="file" id="fileInput" accept="image/*">
+    <div class="upload-box-icon">
+      <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+    </div>
+    <p><span>Choose a file</span> or drag and drop</p>
+    <small>JPEG · PNG · WebP · any size</small>
+  </div>
+  <input type="file" id="fileInputAlt" accept="image/*" style="display:none">
+
+  <div class="step2" id="step2">
+
+    <div class="file-card" style="margin-top:16px">
+      <img id="thumbPreview" src="" alt="preview">
+      <div class="file-card-meta">
+        <div class="file-card-name" id="fileName"></div>
+        <div class="file-card-info" id="fileInfo"></div>
+        <div class="warn-note" id="pngNote" style="display:none">PNG: lossless — size reduced by scaling dimensions.</div>
+      </div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        <button class="file-card-reset" id="changeImg" title="Load a different image">Change</button>
+        <button class="file-card-reset" id="resetLink" style="color:var(--danger);border-color:var(--border)">Reset</button>
+      </div>
+    </div>
+
+    <div class="settings-panel">
+      <div class="settings-row">
+        <span class="settings-label">target_size</span>
+        <input class="settings-input" type="number" id="targetKB" placeholder="200" min="1">
+        <span class="settings-unit">KB</span>
+        <span class="settings-hint">output file size ceiling</span>
+      </div>
+    </div>
+
+    <div class="action-bar">
+      <button class="btn btn-primary" id="compressBtn">
+        <svg viewBox="0 0 16 16"><path d="M1.5 1.75V13.5h13.75a.75.75 0 0 1 0 1.5H.75a.75.75 0 0 1-.75-.75V1.75a.75.75 0 0 1 1.5 0Zm14.28 2.53-5.25 5.25a.75.75 0 0 1-1.06 0L7 7.06 4.28 9.78a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l3.25-3.25a.75.75 0 0 1 1.06 0L10 7.94l4.72-4.72a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734Z"/></svg>
+        Run compression
+      </button>
+    </div>
+
+    <div class="progress-wrap" id="progressWrap">
+      <div class="progress-label" id="progressLabel">Compressing…</div>
+      <div class="progress-track"><div class="progress-fill" id="progressFill"></div></div>
+    </div>
+
+    <div class="result-box" id="resultBox">
+      <div class="result-box-inner" id="resultInner"></div>
+    </div>
+
+  </div>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="crop-dialog">
+    <div class="crop-dialog-header">
+      <h2>Crop <span style="color:var(--text-subtle);font-weight:400;font-size:12px;margin-left:4px">drag to adjust · leave as-is to keep full image</span></h2>
+      <button class="btn btn-sm" onclick="document.getElementById('overlay').classList.remove('show')">✕</button>
+    </div>
+    <div class="crop-area" id="cropArea">
+      <img id="cropImg" src="" alt="">
+      <div class="crop-box" id="cropBox">
+        <div class="handle nw"></div>
+        <div class="handle ne"></div>
+        <div class="handle sw"></div>
+        <div class="handle se"></div>
+      </div>
+    </div>
+    <div class="crop-dialog-footer">
+      <span class="crop-hint" id="cropHint"></span>
+      <button class="btn btn-primary" id="applyCropBtn">Apply crop</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const fileInput = document.getElementById('fileInput');
+const fileInputAlt = document.getElementById('fileInputAlt');
+const uploadArea = document.getElementById('uploadArea');
+const overlay = document.getElementById('overlay');
+const cropImg = document.getElementById('cropImg');
+const cropBox = document.getElementById('cropBox');
+const cropArea = document.getElementById('cropArea');
+const applyCropBtn = document.getElementById('applyCropBtn');
+const step2 = document.getElementById('step2');
+const thumbPreview = document.getElementById('thumbPreview');
+const fileNameEl = document.getElementById('fileName');
+const fileInfoEl = document.getElementById('fileInfo');
+const pngNote = document.getElementById('pngNote');
+const targetKBInput = document.getElementById('targetKB');
+const compressBtn = document.getElementById('compressBtn');
+const resultBox = document.getElementById('resultBox');
+const resultInner = document.getElementById('resultInner');
+const progressWrap = document.getElementById('progressWrap');
+const progressFill = document.getElementById('progressFill');
+const progressLabel = document.getElementById('progressLabel');
+const resetLink = document.getElementById('resetLink');
+const changeImg = document.getElementById('changeImg');
+
+let origFile, mimeType, croppedCanvas, cropState = {}, drag = null;
+
+uploadArea.addEventListener('click', () => fileInput.click());
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('drag-over'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+uploadArea.addEventListener('drop', e => { e.preventDefault(); uploadArea.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
+fileInputAlt.addEventListener('change', () => handleFile(fileInputAlt.files[0]));
+changeImg.addEventListener('click', () => fileInputAlt.click());
+
+function handleFile(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  origFile = file; mimeType = file.type;
+  getExifOrientation(file, orientation => {
+    const url = URL.createObjectURL(file);
+    cropImg.onload = () => {
+      const ow = cropImg.naturalWidth, oh = cropImg.naturalHeight;
+      const swapped = orientation >= 5 && orientation <= 8;
+      const c = document.createElement('canvas');
+      c.width  = swapped ? oh : ow;
+      c.height = swapped ? ow : oh;
+      const ctx = c.getContext('2d');
+      applyExifTransform(ctx, orientation, ow, oh);
+      ctx.drawImage(cropImg, 0, 0);
+      cropImg.src = c.toDataURL(mimeType);
+      cropImg.onload = () => openCropDialog();
+    };
+    cropImg.src = url;
+  });
+}
+
+function getExifOrientation(file, cb) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    const view = new DataView(e.target.result);
+    if (view.getUint16(0, false) !== 0xFFD8) return cb(1);
+    let offset = 2;
+    while (offset < view.byteLength) {
+      const marker = view.getUint16(offset, false); offset += 2;
+      if (marker === 0xFFE1) {
+        if (view.getUint32(offset += 2, false) !== 0x45786966) return cb(1);
+        const little = view.getUint16(offset += 6, false) === 0x4949;
+        offset += view.getUint32(offset + 4, little);
+        const tags = view.getUint16(offset, little); offset += 2;
+        for (let i = 0; i < tags; i++) {
+          if (view.getUint16(offset + i*12, little) === 0x0112)
+            return cb(view.getUint16(offset + i*12 + 8, little));
+        }
+      } else if ((marker & 0xFF00) !== 0xFF00) break;
+      else offset += view.getUint16(offset, false);
+    }
+    cb(1);
+  };
+  reader.readAsArrayBuffer(file.slice(0, 64 * 1024));
+}
+
+function applyExifTransform(ctx, orientation, w, h) {
+  switch (orientation) {
+    case 2: ctx.transform(-1, 0, 0,  1, w, 0); break;
+    case 3: ctx.transform(-1, 0, 0, -1, w, h); break;
+    case 4: ctx.transform( 1, 0, 0, -1, 0, h); break;
+    case 5: ctx.transform( 0, 1, 1,  0, 0, 0); break;
+    case 6: ctx.transform( 0, 1,-1,  0, h, 0); break;
+    case 7: ctx.transform( 0,-1,-1,  0, h, w); break;
+    case 8: ctx.transform( 0,-1, 1,  0, 0, w); break;
+    default: break;
+  }
+}
+
+function openCropDialog() {
+  overlay.classList.add('show');
+  requestAnimationFrame(() => initCropBox());
+}
+
+function initCropBox() {
+  const r = cropArea.getBoundingClientRect();
+  const imgR = cropImg.getBoundingClientRect();
+  cropState = { x: imgR.left - r.left, y: imgR.top - r.top, w: imgR.width, h: imgR.height };
+  applyCropBoxStyle();
+  document.getElementById('cropHint').textContent =
+    `${cropImg.naturalWidth} × ${cropImg.naturalHeight} px  ·  ${(origFile.size/1024).toFixed(0)} KB`;
+}
+
+function applyCropBoxStyle() {
+  Object.assign(cropBox.style, { left: cropState.x+'px', top: cropState.y+'px', width: cropState.w+'px', height: cropState.h+'px' });
+}
+
+cropBox.addEventListener('mousedown', startDrag);
+cropBox.addEventListener('touchstart', startDrag, { passive: false });
+
+function startDrag(e) {
+  e.preventDefault();
+  const pt = e.touches ? e.touches[0] : e;
+  const cls = e.target.className;
+  drag = { type: cls.includes('handle') ? cls.replace('handle ','') : 'move', startX: pt.clientX, startY: pt.clientY, orig: {...cropState} };
+}
+
+window.addEventListener('mousemove', onDrag);
+window.addEventListener('touchmove', onDrag, { passive: false });
+window.addEventListener('mouseup', () => drag = null);
+window.addEventListener('touchend', () => drag = null);
+
+function onDrag(e) {
+  if (!drag) return;
+  e.preventDefault();
+  const pt = e.touches ? e.touches[0] : e;
+  const dx = pt.clientX - drag.startX, dy = pt.clientY - drag.startY;
+  const r = cropArea.getBoundingClientRect();
+  const imgR = cropImg.getBoundingClientRect();
+  const b = { x: imgR.left-r.left, y: imgR.top-r.top, maxX: imgR.right-r.left, maxY: imgR.bottom-r.top };
+  let {x,y,w,h} = drag.orig;
+  if (drag.type === 'move') { x = clamp(x+dx, b.x, b.maxX-w); y = clamp(y+dy, b.y, b.maxY-h); }
+  else {
+    if (drag.type.includes('e')) w = clamp(w+dx, 20, b.maxX-x);
+    if (drag.type.includes('s')) h = clamp(h+dy, 20, b.maxY-y);
+    if (drag.type.includes('w')) { const nx=clamp(x+dx,b.x,x+w-20); w-=nx-x; x=nx; }
+    if (drag.type.includes('n')) { const ny=clamp(y+dy,b.y,y+h-20); h-=ny-y; y=ny; }
+  }
+  cropState = {x,y,w,h}; applyCropBoxStyle();
+}
+
+function clamp(v,mn,mx) { return Math.max(mn,Math.min(mx,v)); }
+
+applyCropBtn.addEventListener('click', () => {
+  const { scaleX, scaleY, offsetX, offsetY } = getScaleFactors();
+  const sx=(cropState.x-offsetX)*scaleX, sy=(cropState.y-offsetY)*scaleY;
+  const sw=cropState.w*scaleX, sh=cropState.h*scaleY;
+  const c = document.createElement('canvas');
+  c.width=Math.round(sw); c.height=Math.round(sh);
+  c.getContext('2d').drawImage(cropImg, sx, sy, sw, sh, 0, 0, c.width, c.height);
+  croppedCanvas = c;
+  closeDialog();
+});
+
+function getScaleFactors() {
+  const imgR = cropImg.getBoundingClientRect();
+  const r = cropArea.getBoundingClientRect();
+  return { scaleX: cropImg.naturalWidth/imgR.width, scaleY: cropImg.naturalHeight/imgR.height, offsetX: imgR.left-r.left, offsetY: imgR.top-r.top };
+}
+
+function closeDialog() {
+  overlay.classList.remove('show');
+  thumbPreview.src = croppedCanvas.toDataURL();
+  fileNameEl.textContent = origFile.name;
+  fileInfoEl.textContent = `${(origFile.size/1024).toFixed(1)} KB  ·  ${croppedCanvas.width} × ${croppedCanvas.height} px  ·  ${mimeType.split('/')[1].toUpperCase()}`;
+  pngNote.style.display = mimeType === 'image/png' ? 'block' : 'none';
+  uploadArea.style.display = 'none';
+  step2.classList.add('show');
+}
+
+compressBtn.addEventListener('click', async () => {
+  const targetKB = parseFloat(targetKBInput.value);
+  if (!targetKB || targetKB < 1) { alert('Enter a valid target size.'); return; }
+  const origKB = origFile.size / 1024;
+  if (targetKB >= origKB) {
+    showResult('warn', `Target <code>${targetKB} KB</code> is not smaller than original <code>${origKB.toFixed(1)} KB</code>.`);
+    return;
+  }
+  compressBtn.disabled = true;
+  resultBox.classList.remove('show');
+  progressWrap.classList.add('show');
+  progressFill.style.width = '5%';
+  progressLabel.textContent = 'Compressing…';
+
+  try {
+    const blob = await compress(croppedCanvas, mimeType, targetKB, p => {
+      progressFill.style.width = (5 + p * 90) + '%';
+    });
+    progressFill.style.width = '100%';
+    const finalKB = (blob.size/1024).toFixed(1);
+    const ext = mimeType.split('/')[1];
+    const fname = origFile.name.replace(/\.[^.]+$/,'') + '_compressed.' + ext;
+    const url = URL.createObjectURL(blob);
+    const ok = blob.size/1024 <= targetKB * 1.05;
+    progressLabel.textContent = 'Done.';
+    showResult(ok ? 'success' : 'warn',
+      `${ok
+        ? `<div class="result-header success"><svg viewBox="0 0 16 16"><path d="M13.78 4.22a.75.75 0 0 1 0 1.06l-7.25 7.25a.75.75 0 0 1-1.06 0L2.22 9.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215L6 10.94l6.72-6.72a.75.75 0 0 1 1.06 0Z"/></svg>Compression successful</div>`
+        : `<div class="result-header warn"><svg viewBox="0 0 16 16"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></svg>Could not fully reach target</div>`
+      }
+      <div class="result-body">
+        Output: <code>${finalKB} KB</code> → target was <code>${targetKB} KB</code>
+        ${!ok ? `<br>Try a higher target or the image may be at minimum quality already.` : ''}
+        <br><a class="result-download" href="${url}" download="${fname}">
+          <svg viewBox="0 0 16 16"><path d="M2.75 14A1.75 1.75 0 0 1 1 12.25v-2.5a.75.75 0 0 1 1.5 0v2.5c0 .138.112.25.25.25h10.5a.25.25 0 0 0 .25-.25v-2.5a.75.75 0 0 1 1.5 0v2.5A1.75 1.75 0 0 1 13.25 14Zm-1-5.573 3.25 3.25a.75.75 0 0 0 1.06 0l3.25-3.25a.749.749 0 0 0-.326-1.275.749.749 0 0 0-.734.215L7.75 8.69V2.75a.75.75 0 0 0-1.5 0v5.94L4.97 7.41a.749.749 0 0 0-1.275.326.749.749 0 0 0 .215.734Z"/></svg>
+          ${fname}
+        </a>
+      </div>`
+    );
+  } catch(err) {
+    showResult('warn', `<div class="result-header warn">Error</div><div class="result-body">${err.message}</div>`);
+  }
+
+  progressWrap.classList.remove('show');
+  compressBtn.disabled = false;
+});
+
+async function compress(src, mime, targetKB, onProgress) {
+  return mime === 'image/png'
+    ? compressPNG(src, targetKB*1024, onProgress)
+    : binarySearchQuality(src, mime, targetKB*1024, 1.0, onProgress);
+}
+
+async function binarySearchQuality(src, mime, targetBytes, scale, onProgress) {
+  const c = scaleCanvas(src, scale);
+  let lo=0.1, hi=0.95, best=null;
+  for (let i=0; i<12; i++) {
+    const q=(lo+hi)/2, blob=await toBlob(c, mime, q);
+    onProgress && onProgress(i/12);
+    if (blob.size <= targetBytes) { best=blob; lo=q; } else hi=q;
+  }
+  if (!best) {
+    if (scale > 0.08) return binarySearchQuality(src, mime, targetBytes, scale*0.75, onProgress);
+    return toBlob(c, mime, 0.1);
+  }
+  return best;
+}
+
+async function compressPNG(src, targetBytes, onProgress) {
+  let scale=1.0, best=null;
+  for (let i=0; i<12; i++) {
+    const blob=await toBlob(scaleCanvas(src, scale), 'image/png');
+    onProgress && onProgress(i/12);
+    best=blob;
+    if (blob.size <= targetBytes) break;
+    scale*=0.78;
+    if (scale<0.04) break;
+  }
+  return best;
+}
+
+function scaleCanvas(src, s) {
+  const c=document.createElement('canvas');
+  c.width=Math.max(1,Math.round(src.width*s));
+  c.height=Math.max(1,Math.round(src.height*s));
+  c.getContext('2d').drawImage(src,0,0,c.width,c.height);
+  return c;
+}
+
+function toBlob(c, mime, q) { return new Promise(res => c.toBlob(res, mime, q)); }
+
+function showResult(type, html) {
+  resultInner.className = 'result-box-inner ' + type;
+  resultInner.innerHTML = html;
+  resultBox.classList.add('show');
+}
+
+resetLink.addEventListener('click', () => {
+  step2.classList.remove('show');
+  resultBox.classList.remove('show');
+  progressWrap.classList.remove('show');
+  fileInput.value=''; fileInputAlt.value='';
+  origFile=null; croppedCanvas=null; targetKBInput.value='';
+  uploadArea.style.display = '';
+});
+</script>
+</body>
+</html>
